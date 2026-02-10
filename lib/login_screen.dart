@@ -17,7 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Optional: Check if user is already signed in when the screen loads
     _checkCurrentUser();
   }
 
@@ -28,10 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// Checks Firestore to see if the user belongs to a family
   Future<void> _checkFamilyAndRedirect(User user) async {
     setState(() => _isLoading = true);
-    
     try {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -40,41 +37,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (userDoc.exists && userDoc.data() != null) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
-        
         if (data.containsKey('familyId') && data['familyId'] != null) {
-          // CASE 1: User has a family -> Go to Home
-          String familyId = data['familyId'];
           if (mounted) {
             Navigator.pushReplacement(
               context, 
-              MaterialPageRoute(builder: (_) => HomeScreen(familyId: familyId))
+              MaterialPageRoute(builder: (_) => HomeScreen(familyId: data['familyId']))
             );
           }
-        } else {
-          // CASE 2: User exists but has no family -> Go to Create/Join
-          if (mounted) {
-            Navigator.pushReplacement(
-              context, 
-              MaterialPageRoute(builder: (_) => CreateJoinScreen())
-            );
-          }
+          return;
         }
-      } else {
-        // CASE 3: User document doesn't exist yet (New User) -> Go to Create/Join
-        if (mounted) {
-          Navigator.pushReplacement(
-            context, 
-            MaterialPageRoute(builder: (_) => CreateJoinScreen())
-          );
-        }
+      }
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => CreateJoinScreen()));
       }
     } catch (e) {
-      print("Error checking user data: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading user data: $e')),
-        );
-      }
+      debugPrint("Check user error: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -82,15 +59,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
-    
-    // 1. Perform Google Sign In
     User? user = await _authService.signInWithGoogle();
-    
     if (user != null) {
-      // 2. Check Logic
       await _checkFamilyAndRedirect(user);
     } else {
-      // Sign in cancelled or failed
       setState(() => _isLoading = false);
     }
   }
@@ -98,65 +70,55 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo Section
-              Icon(Icons.family_restroom, size: 100, color: Colors.blue),
-              SizedBox(height: 20),
-              
-              Text(
-                'FamChores',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey[900],
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFEAECC5), Colors.white],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2CC0E4).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded, size: 80, color: Color(0xFF2CC0E4)),
                 ),
-              ),
-              Text(
-                'Sync tasks, happy home.',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-              ),
-              SizedBox(height: 60),
-
-              // Loading Indicator OR Sign-In Button
-              _isLoading
-                  ? Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text("Checking your account...", style: TextStyle(color: Colors.grey)),
-                      ],
-                    )
-                  : SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
+                const SizedBox(height: 32),
+                const Text(
+                  'FamChores',
+                  style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFF2C3E50), letterSpacing: -1.5),
+                ),
+                const Text(
+                  'Sync tasks, happy home.',
+                  style: TextStyle(fontSize: 18, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+                ),
+                const Spacer(),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey.shade300),
-                          ),
+                          foregroundColor: Colors.black87,
+                          side: BorderSide(color: Colors.grey.shade300),
                         ),
-                        icon: Icon(Icons.login, color: Colors.blue), 
-                        label: Text(
-                          'Sign in with Google',
-                          style: TextStyle(
-                            fontSize: 16, 
-                            fontWeight: FontWeight.w600
-                          ),
-                        ),
+                        icon: const Icon(Icons.login, color: Color(0xFF2CC0E4)), 
+                        label: const Text('Sign in with Google'),
                         onPressed: _handleGoogleSignIn,
                       ),
-                    ),
-            ],
+                const SizedBox(height: 48),
+              ],
+            ),
           ),
         ),
       ),
