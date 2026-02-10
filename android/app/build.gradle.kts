@@ -1,9 +1,9 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id("com.google.gms.google-services") version "4.4.4" apply false
     id("dev.flutter.flutter-gradle-plugin")
+    // ONLY this line is needed here. No version, no 'apply false'.
+    id("com.google.gms.google-services") 
 }
 
 android {

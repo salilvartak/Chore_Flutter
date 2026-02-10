@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'home_screen.dart'; // For navigation after creating/joining family
 
 class CreateJoinScreen extends StatefulWidget {
   @override
@@ -56,6 +57,11 @@ class _CreateJoinScreenState extends State<CreateJoinScreen> {
 
       // 3. Navigate to Home
       print("Family Created! Code: $code");
+      // Make sure you have imported home_screen.dart at the top!
+      Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (_) => HomeScreen(familyId: familyRef.id))
+      );
       // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
 
     } catch (e) {
@@ -101,7 +107,10 @@ class _CreateJoinScreenState extends State<CreateJoinScreen> {
       }, SetOptions(merge: true));
 
       // 4. Navigate to Home
-      print("Joined Family Successfully!");
+     Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (_) => HomeScreen(familyId: familyRef.id))
+      );
       // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
 
     } catch (e) {

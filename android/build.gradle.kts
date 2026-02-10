@@ -1,3 +1,9 @@
+// Add this block at the top
+plugins {
+    // This tells Gradle which version to use for the whole project
+    id("com.google.gms.google-services") version "4.4.4" apply false
+}
+
 allprojects {
     repositories {
         google()

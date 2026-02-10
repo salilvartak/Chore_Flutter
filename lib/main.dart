@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'login_screen.dart';
 
+// --- PASTE YOUR CODE HERE ---
 void main() async {
-  // 1. Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Initialize Firebase
-  // If you haven't generated firebase_options.dart via CLI, 
-  // ensure google-services.json is in android/app/
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+    print("✅ Firebase Initialized Successfully");
+  } catch (e) {
+    print("❌ Firebase Initialization Failed: $e");
+  }
 
-  // 3. Run the App
   runApp(const MyApp());
 }
+// ---------------------------
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -27,9 +29,6 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      // We start at the LoginScreen. 
-      // The LoginScreen will handle the check to see if the user 
-      // is already signed in and redirect them if necessary.
       home: LoginScreen(),
     );
   }
