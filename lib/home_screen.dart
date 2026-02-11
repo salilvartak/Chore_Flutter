@@ -46,79 +46,216 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showAddChoreDialog() {
-    showDialog(
+  void _showAddChoreBottomSheet() {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // Allows the sheet to expand fully with keyboard
+      backgroundColor: Colors.transparent,
       builder: (context) {
+        // Local state for the bottom sheet
         final TextEditingController taskController = TextEditingController();
         String? selectedMemberId;
         String? selectedMemberName;
+        DateTime? selectedDate;
 
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          return AlertDialog(
-            title: const Text("Assign New Chore"),
-            content: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _fetchFamilyMembers(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
-                var members = snapshot.data!;
-                
-                return SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: taskController, 
-                        decoration: const InputDecoration(labelText: "Task Title", border: OutlineInputBorder())
-                      ),
-                      const SizedBox(height: 16),
-                      // FIX: Added explicit types and casting below
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(labelText: "Assign To", border: OutlineInputBorder()),
-                        value: selectedMemberId,
-                        items: members.map<DropdownMenuItem<String>>((m) {
-                          return DropdownMenuItem<String>(
-                            value: m['uid'] as String,
-                            child: Text(m['name'] as String),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          setStateDialog(() {
-                            selectedMemberId = val;
-                            // Find name based on selected ID
-                            final selectedMember = members.firstWhere((m) => m['uid'] == val, orElse: () => {});
-                            if (selectedMember.isNotEmpty) {
-                              selectedMemberName = selectedMember['name'] as String;
-                            }
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-              ElevatedButton(
-                onPressed: () async {
-                  if (taskController.text.isNotEmpty && selectedMemberId != null) {
-                    await FirebaseFirestore.instance.collection('families').doc(widget.familyId).collection('chores').add({
-                      'title': taskController.text.trim(),
-                      'isCompleted': false,
-                      'assignedTo': selectedMemberId,
-                      'assignedToName': selectedMemberName,
-                      'createdBy': currentUser!.uid,
-                      'createdAt': FieldValue.serverTimestamp(),
-                    });
-                    Navigator.pop(context);
-                  }
+        // Default to current user if possible (requires fetching first, handled inside Builder)
+        
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFEAECC5), // Match app background
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _fetchFamilyMembers(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  var members = snapshot.data!;
+
+                  return StatefulBuilder(
+                    builder: (context, setStateSheet) {
+                      // Auto-select current user initially if not set
+                      if (selectedMemberId == null && members.isNotEmpty) {
+                         final me = members.firstWhere((m) => m['uid'] == currentUser?.uid, orElse: () => members.first);
+                         selectedMemberId = me['uid'];
+                         selectedMemberName = me['name'];
+                      }
+
+                      return ListView(
+                        controller: scrollController,
+                        children: [
+                          // 1. Drag Handle
+                          Center(
+                            child: Container(
+                              width: 50, height: 5,
+                              margin: const EdgeInsets.only(bottom: 20),
+                              decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+
+                          const Text("New Chore", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
+                          const SizedBox(height: 20),
+
+                          // 2. Task Input
+                          TextField(
+                            controller: taskController,
+                            autofocus: true,
+                            style: const TextStyle(fontSize: 18),
+                            decoration: InputDecoration(
+                              hintText: "What needs to be done?",
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.all(20),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // 3. Horizontal User List (Cards)
+                          const Text("Assign to", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 110,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: members.length,
+                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final member = members[index];
+                                final isSelected = member['uid'] == selectedMemberId;
+                                
+                                return GestureDetector(
+                                  onTap: () {
+                                    setStateSheet(() {
+                                      selectedMemberId = member['uid'];
+                                      selectedMemberName = member['name'];
+                                    });
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: 85,
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? const Color(0xFF2CC0E4) : Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: isSelected ? null : Border.all(color: Colors.transparent),
+                                      boxShadow: isSelected 
+                                        ? [BoxShadow(color: const Color(0xFF2CC0E4).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] 
+                                        : [],
+                                    ),
+                                    padding: const EdgeInsets.all(8),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: isSelected ? Colors.white : const Color(0xFFEAECC5),
+                                          foregroundColor: isSelected ? const Color(0xFF2CC0E4) : Colors.black87,
+                                          child: Text(member['name'][0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          member['name'],
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 12, 
+                                            fontWeight: FontWeight.w600,
+                                            color: isSelected ? Colors.white : Colors.black87
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // 4. Deadline Date Picker
+                          const Text("Deadline", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime(2101),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.light(primary: Color(0xFF2CC0E4)),
+                                    ),
+                                    child: child!,
+                                  );
+                                }
+                              );
+                              if (picked != null) {
+                                setStateSheet(() => selectedDate = picked);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_today_rounded, color: selectedDate != null ? const Color(0xFF2CC0E4) : Colors.grey),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    selectedDate == null ? "No Deadline" : DateFormat('MMM d, y').format(selectedDate!),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: selectedDate != null ? Colors.black87 : Colors.grey,
+                                      fontWeight: selectedDate != null ? FontWeight.w600 : FontWeight.normal
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  if (selectedDate != null)
+                                    GestureDetector(
+                                      onTap: () => setStateSheet(() => selectedDate = null),
+                                      child: const Icon(Icons.close, color: Colors.grey, size: 20),
+                                    )
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // 5. Submit Button
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (taskController.text.isNotEmpty && selectedMemberId != null) {
+                                await FirebaseFirestore.instance.collection('families').doc(widget.familyId).collection('chores').add({
+                                  'title': taskController.text.trim(),
+                                  'isCompleted': false,
+                                  'assignedTo': selectedMemberId,
+                                  'assignedToName': selectedMemberName,
+                                  'dueDate': selectedDate != null ? Timestamp.fromDate(selectedDate!) : null,
+                                  'createdBy': currentUser!.uid,
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                });
+                                if (context.mounted) Navigator.pop(context);
+                              }
+                            },
+                            child: const Text("Create Chore"),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    },
+                  );
                 },
-                child: const Text("Assign"),
-              )
-            ],
-          );
-        });
+              ),
+            );
+          },
+        );
       },
     );
   }
@@ -145,15 +282,51 @@ class _HomeScreenState extends State<HomeScreen> {
             var data = chore.data() as Map<String, dynamic>;
             bool isCompleted = data['isCompleted'] ?? false;
             
+            // Format Date for Card
+            String? dueDateText;
+            Color dateColor = Colors.grey;
+            if (data['dueDate'] != null) {
+              DateTime dt = (data['dueDate'] as Timestamp).toDate();
+              dueDateText = DateFormat('MMM d').format(dt);
+              // Highlight if overdue
+              if (dt.isBefore(DateTime.now().subtract(const Duration(days: 1))) && !isCompleted) {
+                dateColor = Colors.redAccent;
+              }
+            }
+
             return Card(
               child: ListTile(
-                leading: Checkbox(
-                  activeColor: const Color(0xFF2CC0E4),
-                  value: isCompleted,
-                  onChanged: (val) => chore.reference.update({'isCompleted': val}),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: Transform.scale(
+                  scale: 1.2,
+                  child: Checkbox(
+                    activeColor: const Color(0xFF2CC0E4),
+                    shape: const CircleBorder(),
+                    value: isCompleted,
+                    onChanged: (val) => chore.reference.update({'isCompleted': val}),
+                  ),
                 ),
-                title: Text(data['title'], style: TextStyle(fontWeight: FontWeight.bold, decoration: isCompleted ? TextDecoration.lineThrough : null)),
-                subtitle: Text("Assigned to: ${data['assignedToName']}"),
+                title: Text(
+                  data['title'], 
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    decoration: isCompleted ? TextDecoration.lineThrough : null,
+                    color: isCompleted ? Colors.grey : const Color(0xFF2C3E50)
+                  )
+                ),
+                subtitle: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 14, color: Colors.blueGrey[300]),
+                    const SizedBox(width: 4),
+                    Text(data['assignedToName'] ?? "Unknown", style: TextStyle(color: Colors.blueGrey[400], fontSize: 13)),
+                    if (dueDateText != null) ...[
+                      const SizedBox(width: 12),
+                      Icon(Icons.calendar_today, size: 14, color: dateColor.withOpacity(0.7)),
+                      const SizedBox(width: 4),
+                      Text(dueDateText, style: TextStyle(color: dateColor, fontSize: 13, fontWeight: FontWeight.w500)),
+                    ]
+                  ],
+                ),
                 trailing: data['createdBy'] == currentUser?.uid 
                   ? IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent), onPressed: () => chore.reference.delete())
                   : null,
@@ -232,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _selectedIndex == 0 ? _buildChoresTab() : _buildMembersTab(),
       floatingActionButton: _selectedIndex == 0 ? FloatingActionButton(
-        onPressed: _showAddChoreDialog,
+        onPressed: _showAddChoreBottomSheet,
         backgroundColor: const Color(0xFF2CC0E4),
         child: const Icon(Icons.add, color: Colors.white),
       ) : null,
