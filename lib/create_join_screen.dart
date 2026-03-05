@@ -95,7 +95,7 @@ class _CreateJoinScreenState extends State<CreateJoinScreen> {
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator()) 
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981))) 
             : _buildViewContent(),
         ),
       ),
@@ -117,10 +117,10 @@ class _CreateJoinScreenState extends State<CreateJoinScreen> {
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 56),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              side: const BorderSide(color: Color(0xFF2CC0E4), width: 2),
+              side: const BorderSide(color: Color(0xFF10B981), width: 2), // Emerald border
             ),
             onPressed: () => setState(() => _mode = 'join'),
-            child: const Text("Join an existing Family", style: TextStyle(color: Color(0xFF2CC0E4), fontSize: 18, fontWeight: FontWeight.bold)),
+            child: const Text("Join an existing Family", style: TextStyle(color: Color(0xFF10B981), fontSize: 18, fontWeight: FontWeight.bold)),
           ),
         ],
       );
@@ -128,11 +128,12 @@ class _CreateJoinScreenState extends State<CreateJoinScreen> {
       return Column(
         key: const ValueKey('create'),
         children: [
-          const Text("Give your family group a name", style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
+          const Text("Give your family group a name", style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8))), // Muted Text
           const SizedBox(height: 16),
           TextField(
             controller: _familyNameController,
-            decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Family Name (e.g. The Smiths)'),
+            style: const TextStyle(color: Color(0xFFF8FAFC)),
+            decoration: const InputDecoration(labelText: 'Family Name (e.g. The Smiths)'),
           ),
           const SizedBox(height: 24),
           ElevatedButton(onPressed: _createFamily, child: const Text("Create & Generate Code")),
@@ -142,14 +143,14 @@ class _CreateJoinScreenState extends State<CreateJoinScreen> {
       return Column(
         key: const ValueKey('join'),
         children: [
-          const Text("Enter the 6-digit code shared by your family", style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
+          const Text("Enter the 6-digit code shared by your family", style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8))),
           const SizedBox(height: 16),
           TextField(
             controller: _joinCodeController,
             maxLength: 6,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 8),
-            decoration: const InputDecoration(border: OutlineInputBorder(), counterText: ""),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 8, color: Color(0xFFF8FAFC)),
+            decoration: const InputDecoration(counterText: ""),
             textCapitalization: TextCapitalization.characters,
           ),
           const SizedBox(height: 24),

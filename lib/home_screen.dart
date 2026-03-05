@@ -49,16 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAddChoreBottomSheet() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Allows the sheet to expand fully with keyboard
+      isScrollControlled: true, 
       backgroundColor: Colors.transparent,
       builder: (context) {
-        // Local state for the bottom sheet
         final TextEditingController taskController = TextEditingController();
         String? selectedMemberId;
         String? selectedMemberName;
         DateTime? selectedDate;
-
-        // Default to current user if possible (requires fetching first, handled inside Builder)
         
         return DraggableScrollableSheet(
           initialChildSize: 0.7,
@@ -67,19 +64,19 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (_, scrollController) {
             return Container(
               decoration: const BoxDecoration(
-                color: Color(0xFFEAECC5), // Match app background
+                color: Color(0xFF1E293B), // Surface/Card color for modal
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                border: Border(top: BorderSide(color: Color(0xFF334155))),
               ),
               padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: _fetchFamilyMembers(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
                   var members = snapshot.data!;
 
                   return StatefulBuilder(
                     builder: (context, setStateSheet) {
-                      // Auto-select current user initially if not set
                       if (selectedMemberId == null && members.isNotEmpty) {
                          final me = members.firstWhere((m) => m['uid'] == currentUser?.uid, orElse: () => members.first);
                          selectedMemberId = me['uid'];
@@ -89,35 +86,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       return ListView(
                         controller: scrollController,
                         children: [
-                          // 1. Drag Handle
                           Center(
                             child: Container(
                               width: 50, height: 5,
                               margin: const EdgeInsets.only(bottom: 20),
-                              decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                              decoration: BoxDecoration(color: const Color(0xFF334155), borderRadius: BorderRadius.circular(10)),
                             ),
                           ),
 
-                          const Text("New Chore", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
+                          const Text("New Chore", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFF8FAFC))),
                           const SizedBox(height: 20),
 
-                          // 2. Task Input
                           TextField(
                             controller: taskController,
                             autofocus: true,
-                            style: const TextStyle(fontSize: 18),
+                            style: const TextStyle(fontSize: 18, color: Color(0xFFF8FAFC)),
                             decoration: InputDecoration(
                               hintText: "What needs to be done?",
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                              fillColor: const Color(0xFF0F172A), // Slightly darker inside input
                               contentPadding: const EdgeInsets.all(20),
                             ),
                           ),
                           const SizedBox(height: 24),
 
-                          // 3. Horizontal User List (Cards)
-                          const Text("Assign to", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+                          const Text("Assign to", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 110,
@@ -140,11 +132,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     duration: const Duration(milliseconds: 200),
                                     width: 85,
                                     decoration: BoxDecoration(
-                                      color: isSelected ? const Color(0xFF2CC0E4) : Colors.white,
+                                      color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF0F172A), // Indigo for selection
                                       borderRadius: BorderRadius.circular(16),
-                                      border: isSelected ? null : Border.all(color: Colors.transparent),
+                                      border: Border.all(color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF334155)),
                                       boxShadow: isSelected 
-                                        ? [BoxShadow(color: const Color(0xFF2CC0E4).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] 
+                                        ? [BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] 
                                         : [],
                                     ),
                                     padding: const EdgeInsets.all(8),
@@ -152,8 +144,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         CircleAvatar(
-                                          backgroundColor: isSelected ? Colors.white : const Color(0xFFEAECC5),
-                                          foregroundColor: isSelected ? const Color(0xFF2CC0E4) : Colors.black87,
+                                          backgroundColor: isSelected ? const Color(0xFF1E293B) : const Color(0xFF1E293B),
+                                          foregroundColor: isSelected ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8),
                                           child: Text(member['name'][0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
                                         ),
                                         const SizedBox(height: 8),
@@ -163,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           style: TextStyle(
                                             fontSize: 12, 
                                             fontWeight: FontWeight.w600,
-                                            color: isSelected ? Colors.white : Colors.black87
+                                            color: isSelected ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8)
                                           ),
                                         ),
                                       ],
@@ -175,8 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 24),
 
-                          // 4. Deadline Date Picker
-                          const Text("Deadline", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+                          const Text("Deadline", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
                           const SizedBox(height: 12),
                           GestureDetector(
                             onTap: () async {
@@ -188,7 +179,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 builder: (context, child) {
                                   return Theme(
                                     data: Theme.of(context).copyWith(
-                                      colorScheme: const ColorScheme.light(primary: Color(0xFF2CC0E4)),
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: Color(0xFF10B981), // Emerald
+                                        onPrimary: Color(0xFFF8FAFC),
+                                        surface: Color(0xFF1E293B),
+                                        onSurface: Color(0xFFF8FAFC),
+                                      ),
                                     ),
                                     child: child!,
                                   );
@@ -201,18 +197,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: const Color(0xFF0F172A), // Match input backgrounds
                                 borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFF334155)),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.calendar_today_rounded, color: selectedDate != null ? const Color(0xFF2CC0E4) : Colors.grey),
+                                  Icon(Icons.calendar_today_rounded, color: selectedDate != null ? const Color(0xFF10B981) : const Color(0xFF94A3B8)),
                                   const SizedBox(width: 12),
                                   Text(
                                     selectedDate == null ? "No Deadline" : DateFormat('MMM d, y').format(selectedDate!),
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: selectedDate != null ? Colors.black87 : Colors.grey,
+                                      color: selectedDate != null ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8),
                                       fontWeight: selectedDate != null ? FontWeight.w600 : FontWeight.normal
                                     ),
                                   ),
@@ -220,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   if (selectedDate != null)
                                     GestureDetector(
                                       onTap: () => setStateSheet(() => selectedDate = null),
-                                      child: const Icon(Icons.close, color: Colors.grey, size: 20),
+                                      child: const Icon(Icons.close, color: Color(0xFF94A3B8), size: 20),
                                     )
                                 ],
                               ),
@@ -228,7 +225,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 32),
 
-                          // 5. Submit Button
                           ElevatedButton(
                             onPressed: () async {
                               if (taskController.text.isNotEmpty && selectedMemberId != null) {
@@ -270,9 +266,9 @@ class _HomeScreenState extends State<HomeScreen> {
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
         var chores = snapshot.data!.docs;
-        if (chores.isEmpty) return const Center(child: Text("All caught up!", style: TextStyle(color: Colors.blueGrey)));
+        if (chores.isEmpty) return const Center(child: Text("All caught up!", style: TextStyle(color: Color(0xFF94A3B8))));
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -282,13 +278,11 @@ class _HomeScreenState extends State<HomeScreen> {
             var data = chore.data() as Map<String, dynamic>;
             bool isCompleted = data['isCompleted'] ?? false;
             
-            // Format Date for Card
             String? dueDateText;
-            Color dateColor = Colors.grey;
+            Color dateColor = const Color(0xFF94A3B8);
             if (data['dueDate'] != null) {
               DateTime dt = (data['dueDate'] as Timestamp).toDate();
               dueDateText = DateFormat('MMM d').format(dt);
-              // Highlight if overdue
               if (dt.isBefore(DateTime.now().subtract(const Duration(days: 1))) && !isCompleted) {
                 dateColor = Colors.redAccent;
               }
@@ -300,7 +294,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: Transform.scale(
                   scale: 1.2,
                   child: Checkbox(
-                    activeColor: const Color(0xFF2CC0E4),
+                    activeColor: const Color(0xFF10B981), // Emerald Success
+                    checkColor: const Color(0xFF0F172A), 
+                    side: const BorderSide(color: Color(0xFF334155), width: 1.5),
                     shape: const CircleBorder(),
                     value: isCompleted,
                     onChanged: (val) => chore.reference.update({'isCompleted': val}),
@@ -311,17 +307,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold, 
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
-                    color: isCompleted ? Colors.grey : const Color(0xFF2C3E50)
+                    color: isCompleted ? const Color(0xFF334155) : const Color(0xFFF8FAFC)
                   )
                 ),
                 subtitle: Row(
                   children: [
-                    Icon(Icons.person_outline, size: 14, color: Colors.blueGrey[300]),
+                    const Icon(Icons.person_outline, size: 14, color: Color(0xFF94A3B8)),
                     const SizedBox(width: 4),
-                    Text(data['assignedToName'] ?? "Unknown", style: TextStyle(color: Colors.blueGrey[400], fontSize: 13)),
+                    Text(data['assignedToName'] ?? "Unknown", style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
                     if (dueDateText != null) ...[
                       const SizedBox(width: 12),
-                      Icon(Icons.calendar_today, size: 14, color: dateColor.withOpacity(0.7)),
+                      Icon(Icons.calendar_today, size: 14, color: dateColor),
                       const SizedBox(width: 4),
                       Text(dueDateText, style: TextStyle(color: dateColor, fontSize: 13, fontWeight: FontWeight.w500)),
                     ]
@@ -342,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('families').doc(widget.familyId).snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
         var familyData = snapshot.data!.data() as Map<String, dynamic>;
         List<dynamic> memberIds = familyData['members'] ?? [];
 
@@ -351,12 +347,16 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: const Color(0xFF2CC0E4).withOpacity(0.1), borderRadius: BorderRadius.circular(24)),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                border: Border.all(color: const Color(0xFF334155)),
+                borderRadius: BorderRadius.circular(24)
+              ),
               child: Column(
                 children: [
-                  const Text("Family Join Code", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text("Family Join Code", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
                   const SizedBox(height: 8),
-                  SelectableText(familyData['code'] ?? "---", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF2CC0E4))),
+                  SelectableText(familyData['code'] ?? "---", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF6366F1), letterSpacing: 4)), // Indigo
                 ],
               ),
             ),
@@ -372,9 +372,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       var user = userSnap.data!;
                       return Card(
                         child: ListTile(
-                          leading: CircleAvatar(backgroundColor: const Color(0xFF2CC0E4), child: Text(user['displayName'][0], style: const TextStyle(color: Colors.white))),
-                          title: Text(user['displayName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(user['email']),
+                          leading: CircleAvatar(backgroundColor: const Color(0xFF6366F1), child: Text(user['displayName'][0], style: const TextStyle(color: Color(0xFFF8FAFC)))),
+                          title: Text(user['displayName'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFF8FAFC))),
+                          subtitle: Text(user['email'], style: const TextStyle(color: Color(0xFF94A3B8))),
                         ),
                       );
                     },
@@ -406,8 +406,9 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _selectedIndex == 0 ? _buildChoresTab() : _buildMembersTab(),
       floatingActionButton: _selectedIndex == 0 ? FloatingActionButton(
         onPressed: _showAddChoreBottomSheet,
-        backgroundColor: const Color(0xFF2CC0E4),
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color(0xFF10B981), // Emerald
+        foregroundColor: const Color(0xFFF8FAFC),
+        child: const Icon(Icons.add),
       ) : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

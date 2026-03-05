@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'login_screen.dart';
+import 'splash_screen.dart'; // IMPORT THE NEW SPLASH SCREEN
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,27 +22,29 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFEAECC5),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2CC0E4),
-          primary: const Color(0xFF2CC0E4),
-          surface: const Color(0xFFEAECC5),
+        scaffoldBackgroundColor: const Color(0xFF0F172A), // Base layer
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF10B981), // Emerald
+          secondary: Color(0xFF6366F1), // Indigo
+          surface: Color(0xFF1E293B), // Surface/Card
+          onPrimary: Color(0xFFF8FAFC),
+          onSurface: Color(0xFFF8FAFC),
         ),
         appBarTheme: const AppBarThemeData(
-          backgroundColor: Color(0xFFEAECC5),
+          backgroundColor: Color(0xFF0F172A),
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
-            color: Color(0xFF2C3E50),
+            color: Color(0xFFF8FAFC), // Primary Text
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
-          iconTheme: IconThemeData(color: Color(0xFF2C3E50)),
+          iconTheme: IconThemeData(color: Color(0xFFF8FAFC)),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2CC0E4),
-            foregroundColor: Colors.white,
+            backgroundColor: const Color(0xFF10B981), // Emerald
+            foregroundColor: const Color(0xFFF8FAFC),
             minimumSize: const Size(double.infinity, 56),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
@@ -50,20 +52,60 @@ class MyApp extends StatelessWidget {
           ),
         ),
         cardTheme: CardThemeData(
-          color: Colors.white.withOpacity(0.9), // Slightly more opaque for better readability
+          color: const Color(0xFF1E293B), // Surface
           elevation: 0,
           margin: const EdgeInsets.symmetric(vertical: 8),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: const BorderRadius.all(Radius.circular(20)),
+            side: const BorderSide(color: Color(0xFF334155), width: 1), // Stroke
           ),
         ),
-        // Global BottomSheet Style
         bottomSheetTheme: const BottomSheetThemeData(
           backgroundColor: Colors.transparent,
           modalBackgroundColor: Colors.transparent,
         ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF1E293B),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)), // Muted text
+          labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF334155)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF334155)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF6366F1)), // Indigo focus
+          ),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFF1E293B),
+          indicatorColor: const Color(0xFF6366F1).withOpacity(0.2),
+          labelTextStyle: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.selected)) {
+              return const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold);
+            }
+            return const TextStyle(color: Color(0xFF94A3B8));
+          }),
+          iconTheme: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.selected)) {
+              return const IconThemeData(color: Color(0xFF6366F1));
+            }
+            return const IconThemeData(color: Color(0xFF94A3B8));
+          }),
+        ),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Color(0xFFF8FAFC)),
+          bodyMedium: TextStyle(color: Color(0xFFF8FAFC)),
+          titleMedium: TextStyle(color: Color(0xFFF8FAFC)),
+          titleSmall: TextStyle(color: Color(0xFF94A3B8)),
+        ),
       ),
-      home: LoginScreen(),
+      home: const SplashScreen(), // SET SPLASH SCREEN AS HOME
     );
   }
 }

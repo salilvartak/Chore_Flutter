@@ -14,18 +14,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _checkCurrentUser();
-  }
-
-  Future<void> _checkCurrentUser() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await _checkFamilyAndRedirect(user);
-    }
-  }
+  // We removed initState() and the initial check here 
+  // because SplashScreen.dart now handles the auth check before this screen loads.
 
   Future<void> _checkFamilyAndRedirect(User user) async {
     setState(() => _isLoading = true);
@@ -72,13 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFEAECC5), Colors.white],
-          ),
-        ),
+        color: const Color(0xFF0F172A), // Base layer background
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -86,33 +70,47 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(),
+                
+                // IMAGE ASSET FOR LOGO
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  height: 128,
+                  width: 128,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2CC0E4).withOpacity(0.1),
+                    color: const Color(0xFF6366F1).withOpacity(0.15), // Indigo subtle bg
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.auto_awesome_rounded, size: 80, color: Color(0xFF2CC0E4)),
+                  clipBehavior: Clip.antiAlias, // Ensures image clips to the circle shape
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Image.asset(
+                      'assets/logo.png', // Ensure this matches your pubspec.yaml and folder structure
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.image_not_supported, size: 60, color: Color(0xFF6366F1));
+                      },
+                    ),
+                  ),
                 ),
+                
                 const SizedBox(height: 32),
                 const Text(
                   'FamChores',
-                  style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFF2C3E50), letterSpacing: -1.5),
+                  style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFFF8FAFC), letterSpacing: -1.5),
                 ),
                 const Text(
                   'Sync tasks, happy home.',
-                  style: TextStyle(fontSize: 18, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 18, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
                 ),
                 const Spacer(),
                 _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const CircularProgressIndicator(color: Color(0xFF10B981))
                     : ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          side: BorderSide(color: Colors.grey.shade300),
+                          backgroundColor: const Color(0xFF1E293B),
+                          foregroundColor: const Color(0xFFF8FAFC),
+                          side: const BorderSide(color: Color(0xFF334155)),
                         ),
-                        icon: const Icon(Icons.login, color: Color(0xFF2CC0E4)), 
+                        icon: const Icon(Icons.login, color: Color(0xFF10B981)), // Emerald icon
                         label: const Text('Sign in with Google'),
                         onPressed: _handleGoogleSignIn,
                       ),
