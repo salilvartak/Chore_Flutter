@@ -12,7 +12,6 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-// ADDED THE 'with' KEYWORD HERE
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late AnimationController _logoController;
   late Animation<double> _scaleAnimation;
@@ -25,7 +24,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   void initState() {
     super.initState();
 
-    // 1. Logo Entrance Animation 
     _logoController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -37,7 +35,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
     );
 
-    // 2. Loading Bar Animation (Slides back and forth)
     _loaderController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -48,48 +45,20 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
 
     _logoController.forward();
-
-    // 3. Initialize App Data concurrently with the animation
     _initializeApp();
   }
 
   Future<void> _initializeApp() async {
-    // Wait for at least 2.5 seconds so the user can enjoy the splash screen
-    // while we check the Firebase Auth state simultaneously.
-    await Future.wait([
+    // 1. Run the 2.5s timer and the database check AT THE SAME TIME
+    var results = await Future.wait([
       Future.delayed(const Duration(milliseconds: 2500)),
-      _checkAuthAndRoute(),
+      _determineNextScreen(), // This now just returns a Widget, it doesn't navigate yet!
     ]);
-  }
 
-  Future<void> _checkAuthAndRoute() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    Widget nextScreen = LoginScreen();
-
-    if (user != null) {
-      try {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-        if (userDoc.exists && userDoc.data() != null) {
-          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
-          if (data.containsKey('familyId') && data['familyId'] != null) {
-            nextScreen = HomeScreen(familyId: data['familyId']);
-          } else {
-            nextScreen = CreateJoinScreen();
-          }
-        } else {
-          nextScreen = CreateJoinScreen();
-        }
-      } catch (e) {
-        debugPrint("Splash Screen Auth Error: $e");
-      }
-    }
-
+    // 2. NOW that both the timer is done AND the screen is built, we safely navigate
     if (mounted) {
-      // Fade transition to the next screen
+      Widget nextScreen = results[1] as Widget; // Get the widget returned from the auth check
+
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -103,6 +72,37 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     }
   }
 
+  // --- NEW: This just figures out where to go, but doesn't do the moving ---
+  Future<Widget> _determineNextScreen() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get()
+            .timeout(const Duration(seconds: 5));
+
+        if (userDoc.exists && userDoc.data() != null) {
+          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+          if (data.containsKey('familyId') && data['familyId'] != null) {
+            return HomeScreen(familyId: data['familyId']);
+          } else {
+            return CreateJoinScreen();
+          }
+        } else {
+          return CreateJoinScreen();
+        }
+      }
+    } catch (e) {
+      debugPrint("Splash Screen Safety Catch: $e");
+    }
+    
+    // Default fallback if anything fails or no user is logged in
+    return LoginScreen(); 
+  }
+
   @override
   void dispose() {
     _logoController.dispose();
@@ -113,12 +113,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // App's Deep Navy Base
+      backgroundColor: const Color(0xFF0F172A), 
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated Logo
             AnimatedBuilder(
               animation: _logoController,
               builder: (context, child) {
@@ -138,12 +137,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
               },
             ),
             const SizedBox(height: 30),
-            // Sliding Loading Bar
             Container(
               width: 120,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B), // Background track
+                color: const Color(0xFF1E293B), 
                 borderRadius: BorderRadius.circular(10),
               ),
               clipBehavior: Clip.antiAlias,
@@ -153,9 +151,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   return FractionalTranslation(
                     translation: Offset(_loaderAnimation.value, 0.0),
                     child: Container(
-                      width: 48, // ~40% of 120px
+                      width: 48, 
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981), // Emerald
+                        color: const Color(0xFF10B981), 
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -170,7 +168,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 }
 
-// Custom Painter that perfectly mimics your HTML SVG path coordinates
 class SvgLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -178,7 +175,6 @@ class SvgLogoPainter extends CustomPainter {
       ..color = const Color(0xFF10B981)
       ..style = PaintingStyle.fill;
 
-    // The original SVG viewBox was 1500x1500. We scale the canvas down to fit the 150px widget.
     final scale = size.width / 1500.0;
     canvas.scale(scale, scale);
 

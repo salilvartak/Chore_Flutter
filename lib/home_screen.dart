@@ -22,237 +22,33 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final notifService = NotificationService();
-    notifService.requestPermission();
-    notifService.saveToken();
-    notifService.initForegroundListeners();
+    _setupNotifications();
   }
 
-  // --- ACTIONS ---
-  Future<List<Map<String, dynamic>>> _fetchFamilyMembers() async {
-    try {
-      DocumentSnapshot familyDoc = await FirebaseFirestore.instance.collection('families').doc(widget.familyId).get();
-      List<dynamic> memberIds = familyDoc['members'] ?? [];
-      List<Map<String, dynamic>> members = [];
-      for (String uid in memberIds) {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        if (userDoc.exists) {
-          members.add({'uid': uid, 'name': userDoc['displayName'] ?? 'Unknown'});
-        }
-      }
-      return members;
-    } catch (e) {
-      return [];
+  Future<void> _setupNotifications() async {
+    final notifService = NotificationService();
+    await notifService.initLocalNotifications(); 
+    await notifService.requestPermission();      
+    await notifService.saveToken();              
+    notifService.initForegroundListeners();      
+    
+    if (mounted) {
+      await notifService.setupInteractMessage(context); 
     }
   }
 
+  // --- NEW: Simplified Bottom Sheet Caller ---
   void _showAddChoreBottomSheet() {
+    if (currentUser == null) return;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, 
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        final TextEditingController taskController = TextEditingController();
-        String? selectedMemberId;
-        String? selectedMemberName;
-        DateTime? selectedDate;
-        
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          builder: (_, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E293B), // Surface/Card color for modal
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                border: Border(top: BorderSide(color: Color(0xFF334155))),
-              ),
-              padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _fetchFamilyMembers(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
-                  var members = snapshot.data!;
-
-                  return StatefulBuilder(
-                    builder: (context, setStateSheet) {
-                      if (selectedMemberId == null && members.isNotEmpty) {
-                         final me = members.firstWhere((m) => m['uid'] == currentUser?.uid, orElse: () => members.first);
-                         selectedMemberId = me['uid'];
-                         selectedMemberName = me['name'];
-                      }
-
-                      return ListView(
-                        controller: scrollController,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 50, height: 5,
-                              margin: const EdgeInsets.only(bottom: 20),
-                              decoration: BoxDecoration(color: const Color(0xFF334155), borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-
-                          const Text("New Chore", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFF8FAFC))),
-                          const SizedBox(height: 20),
-
-                          TextField(
-                            controller: taskController,
-                            autofocus: true,
-                            style: const TextStyle(fontSize: 18, color: Color(0xFFF8FAFC)),
-                            decoration: InputDecoration(
-                              hintText: "What needs to be done?",
-                              fillColor: const Color(0xFF0F172A), // Slightly darker inside input
-                              contentPadding: const EdgeInsets.all(20),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          const Text("Assign to", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 110,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: members.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 12),
-                              itemBuilder: (context, index) {
-                                final member = members[index];
-                                final isSelected = member['uid'] == selectedMemberId;
-                                
-                                return GestureDetector(
-                                  onTap: () {
-                                    setStateSheet(() {
-                                      selectedMemberId = member['uid'];
-                                      selectedMemberName = member['name'];
-                                    });
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    width: 85,
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF0F172A), // Indigo for selection
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF334155)),
-                                      boxShadow: isSelected 
-                                        ? [BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] 
-                                        : [],
-                                    ),
-                                    padding: const EdgeInsets.all(8),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: isSelected ? const Color(0xFF1E293B) : const Color(0xFF1E293B),
-                                          foregroundColor: isSelected ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8),
-                                          child: Text(member['name'][0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          member['name'],
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 12, 
-                                            fontWeight: FontWeight.w600,
-                                            color: isSelected ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8)
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          const Text("Deadline", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime(2101),
-                                builder: (context, child) {
-                                  return Theme(
-                                    data: Theme.of(context).copyWith(
-                                      colorScheme: const ColorScheme.dark(
-                                        primary: Color(0xFF10B981), // Emerald
-                                        onPrimary: Color(0xFFF8FAFC),
-                                        surface: Color(0xFF1E293B),
-                                        onSurface: Color(0xFFF8FAFC),
-                                      ),
-                                    ),
-                                    child: child!,
-                                  );
-                                }
-                              );
-                              if (picked != null) {
-                                setStateSheet(() => selectedDate = picked);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0F172A), // Match input backgrounds
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFF334155)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.calendar_today_rounded, color: selectedDate != null ? const Color(0xFF10B981) : const Color(0xFF94A3B8)),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    selectedDate == null ? "No Deadline" : DateFormat('MMM d, y').format(selectedDate!),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: selectedDate != null ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8),
-                                      fontWeight: selectedDate != null ? FontWeight.w600 : FontWeight.normal
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  if (selectedDate != null)
-                                    GestureDetector(
-                                      onTap: () => setStateSheet(() => selectedDate = null),
-                                      child: const Icon(Icons.close, color: Color(0xFF94A3B8), size: 20),
-                                    )
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          ElevatedButton(
-                            onPressed: () async {
-                              if (taskController.text.isNotEmpty && selectedMemberId != null) {
-                                await FirebaseFirestore.instance.collection('families').doc(widget.familyId).collection('chores').add({
-                                  'title': taskController.text.trim(),
-                                  'isCompleted': false,
-                                  'assignedTo': selectedMemberId,
-                                  'assignedToName': selectedMemberName,
-                                  'dueDate': selectedDate != null ? Timestamp.fromDate(selectedDate!) : null,
-                                  'createdBy': currentUser!.uid,
-                                  'createdAt': FieldValue.serverTimestamp(),
-                                });
-                                if (context.mounted) Navigator.pop(context);
-                              }
-                            },
-                            child: const Text("Create Chore"),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => AddChoreSheet(
+        familyId: widget.familyId,
+        currentUserId: currentUser!.uid,
+      ),
     );
   }
 
@@ -263,12 +59,24 @@ class _HomeScreenState extends State<HomeScreen> {
           .collection('families')
           .doc(widget.familyId)
           .collection('chores')
-          .orderBy('createdAt', descending: true)
+          .orderBy('createdAt', descending: false) // Oldest at top
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
-        var chores = snapshot.data!.docs;
+        
+        var chores = snapshot.data!.docs.toList();
+        
         if (chores.isEmpty) return const Center(child: Text("All caught up!", style: TextStyle(color: Color(0xFF94A3B8))));
+
+        // Push completed items to the absolute bottom
+        chores.sort((a, b) {
+          bool isCompletedA = (a.data() as Map<String, dynamic>)['isCompleted'] ?? false;
+          bool isCompletedB = (b.data() as Map<String, dynamic>)['isCompleted'] ?? false;
+          
+          if (isCompletedA && !isCompletedB) return 1; 
+          if (!isCompletedA && isCompletedB) return -1; 
+          return 0; 
+        });
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -294,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: Transform.scale(
                   scale: 1.2,
                   child: Checkbox(
-                    activeColor: const Color(0xFF10B981), // Emerald Success
+                    activeColor: const Color(0xFF10B981), 
                     checkColor: const Color(0xFF0F172A), 
                     side: const BorderSide(color: Color(0xFF334155), width: 1.5),
                     shape: const CircleBorder(),
@@ -356,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Text("Family Join Code", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
                   const SizedBox(height: 8),
-                  SelectableText(familyData['code'] ?? "---", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF6366F1), letterSpacing: 4)), // Indigo
+                  SelectableText(familyData['code'] ?? "---", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF6366F1), letterSpacing: 4)), 
                 ],
               ),
             ),
@@ -406,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _selectedIndex == 0 ? _buildChoresTab() : _buildMembersTab(),
       floatingActionButton: _selectedIndex == 0 ? FloatingActionButton(
         onPressed: _showAddChoreBottomSheet,
-        backgroundColor: const Color(0xFF10B981), // Emerald
+        backgroundColor: const Color(0xFF10B981), 
         foregroundColor: const Color(0xFFF8FAFC),
         child: const Icon(Icons.add),
       ) : null,
@@ -417,6 +225,262 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.task_alt), label: "Chores"),
           NavigationDestination(icon: Icon(Icons.group_outlined), label: "Family"),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// NEW: We moved the Bottom Sheet out into its own proper Stateful Widget.
+// This completely stops Flutter from crashing during the close animation!
+// ============================================================================
+class AddChoreSheet extends StatefulWidget {
+  final String familyId;
+  final String currentUserId;
+
+  const AddChoreSheet({Key? key, required this.familyId, required this.currentUserId}) : super(key: key);
+
+  @override
+  State<AddChoreSheet> createState() => _AddChoreSheetState();
+}
+
+class _AddChoreSheetState extends State<AddChoreSheet> {
+  final TextEditingController _taskController = TextEditingController();
+  
+  List<Map<String, dynamic>> _members = [];
+  bool _isLoading = true;
+  
+  String? _selectedMemberId;
+  String? _selectedMemberName;
+  DateTime? _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMembers();
+  }
+
+  Future<void> _fetchMembers() async {
+    try {
+      DocumentSnapshot familyDoc = await FirebaseFirestore.instance.collection('families').doc(widget.familyId).get();
+      List<dynamic> memberIds = familyDoc['members'] ?? [];
+      List<Map<String, dynamic>> tempMembers = [];
+      
+      for (String uid in memberIds) {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          tempMembers.add({'uid': uid, 'name': userDoc['displayName'] ?? 'Unknown'});
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _members = tempMembers;
+          _isLoading = false;
+          
+          if (_members.isNotEmpty) {
+            final me = _members.firstWhere((m) => m['uid'] == widget.currentUserId, orElse: () => _members.first);
+            _selectedMemberId = me['uid'];
+            _selectedMemberName = me['name'];
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _taskController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createChore() async {
+    if (_taskController.text.isNotEmpty && _selectedMemberId != null) {
+      // 1. Drop keyboard safely
+      FocusScope.of(context).unfocus(); 
+      
+      // 2. Save to database
+      await FirebaseFirestore.instance.collection('families').doc(widget.familyId).collection('chores').add({
+        'title': _taskController.text.trim(),
+        'isCompleted': false,
+        'assignedTo': _selectedMemberId,
+        'assignedToName': _selectedMemberName,
+        'dueDate': _selectedDate != null ? Timestamp.fromDate(_selectedDate!) : null,
+        'createdBy': widget.currentUserId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      
+      // 3. Close sheet safely
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // This padding ensures the UI slides up exactly the height of the keyboard natively
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E293B),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          border: Border(top: BorderSide(color: Color(0xFF334155))),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: _isLoading 
+            ? const SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: Color(0xFF10B981))))
+            : SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 50, height: 5,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(color: const Color(0xFF334155), borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const Text("New Chore", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFF8FAFC))),
+                    const SizedBox(height: 20),
+
+                    TextField(
+                      controller: _taskController,
+                      autofocus: true,
+                      style: const TextStyle(fontSize: 18, color: Color(0xFFF8FAFC)),
+                      decoration: const InputDecoration(
+                        hintText: "What needs to be done?",
+                        fillColor: Color(0xFF0F172A),
+                        contentPadding: EdgeInsets.all(20),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    const Text("Assign to", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 110,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _members.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final member = _members[index];
+                          final isSelected = member['uid'] == _selectedMemberId;
+                          
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedMemberId = member['uid'];
+                                _selectedMemberName = member['name'];
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 85,
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF0F172A),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF334155)),
+                                boxShadow: isSelected ? [BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: const Color(0xFF1E293B),
+                                    foregroundColor: isSelected ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8),
+                                    child: Text(member['name'][0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    member['name'],
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12, 
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8)
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    const Text("Deadline", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        FocusScope.of(context).unfocus(); // Safe keyboard drop
+                        final picked = await showDatePicker(
+                          context: context, 
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2101),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: Color(0xFF10B981),
+                                  onPrimary: Color(0xFFF8FAFC),
+                                  surface: Color(0xFF1E293B),
+                                  onSurface: Color(0xFFF8FAFC),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          }
+                        );
+                        if (picked != null) {
+                          setState(() => _selectedDate = picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF334155)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today_rounded, color: _selectedDate != null ? const Color(0xFF10B981) : const Color(0xFF94A3B8)),
+                            const SizedBox(width: 12),
+                            Text(
+                              _selectedDate == null ? "No Deadline" : DateFormat('MMM d, y').format(_selectedDate!),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _selectedDate != null ? const Color(0xFFF8FAFC) : const Color(0xFF94A3B8),
+                                fontWeight: _selectedDate != null ? FontWeight.w600 : FontWeight.normal
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_selectedDate != null)
+                              GestureDetector(
+                                onTap: () => setState(() => _selectedDate = null),
+                                child: const Icon(Icons.close, color: Color(0xFF94A3B8), size: 20),
+                              )
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    ElevatedButton(
+                      onPressed: _createChore,
+                      child: const Text("Create Chore"),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
       ),
     );
   }

@@ -1,10 +1,10 @@
 import {onDocumentCreated, onDocumentUpdated} from "firebase-functions/v2/firestore";
+import {setGlobalOptions} from "firebase-functions/v2"; 
 import * as admin from "firebase-admin";
 
-// Initialize Firebase Admin SDK
 admin.initializeApp();
+setGlobalOptions({ region: "asia-south1" });
 
-// Trigger 1: When a new chore is created
 export const notifyOnNewChore = onDocumentCreated(
   "families/{familyId}/chores/{choreId}",
   async (event) => {
@@ -15,25 +15,13 @@ export const notifyOnNewChore = onDocumentCreated(
     const assigneeId = chore.assignedTo;
     const creatorId = chore.createdBy;
 
-    // Prevent sending a notification if the user assigned the chore to themselves
-    if (creatorId === assigneeId) {
-      return;
-    }
+    if (creatorId === assigneeId) return;
 
-    // Fetch the assignee's FCM token from the users collection
-    const userDoc = await admin.firestore()
-      .collection("users")
-      .doc(assigneeId)
-      .get();
-      
+    const userDoc = await admin.firestore().collection("users").doc(assigneeId).get();
     const token = userDoc.data()?.fcmToken;
 
-    if (!token) {
-      console.log("No FCM token found for user:", assigneeId);
-      return;
-    }
+    if (!token) return;
 
-    // Create the notification payload
     const message = {
       notification: {
         title: "New Chore Assigned! 🧹",
@@ -42,12 +30,10 @@ export const notifyOnNewChore = onDocumentCreated(
       token: token,
     };
 
-    // Send the notification
     await admin.messaging().send(message);
   }
 );
 
-// Trigger 2: When a chore is updated (completed)
 export const notifyOnChoreCompleted = onDocumentUpdated(
   "families/{familyId}/chores/{choreId}",
   async (event) => {
@@ -57,31 +43,18 @@ export const notifyOnChoreCompleted = onDocumentUpdated(
     const before = snap.before.data();
     const after = snap.after.data();
 
-    // Check if the status specifically changed from incomplete to complete
     if (after.isCompleted === true && before.isCompleted === false) {
       const creatorId = after.createdBy;
       const assigneeId = after.assignedTo;
 
-      // Prevent sending if the user is completing their own self-assigned chore
-      if (creatorId === assigneeId) {
-        return;
-      }
+      if (creatorId === assigneeId) return;
 
-      // Fetch the creator's FCM token
-      const userDoc = await admin.firestore()
-        .collection("users")
-        .doc(creatorId)
-        .get();
-        
+      const userDoc = await admin.firestore().collection("users").doc(creatorId).get();
       const token = userDoc.data()?.fcmToken;
 
-      if (!token) {
-        console.log("No FCM token found for user:", creatorId);
-        return;
-      }
+      if (!token) return;
 
       const assigneeName = after.assignedToName || "Someone";
-
       const message = {
         notification: {
           title: "Chore Completed! 🎉",
