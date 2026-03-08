@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:769282762159:android:c3798f00f344d6d2a83b5a",
         "android_client_info": {
-          "package_name": "com.salilvartak.huddleup"
+          "package_name": "com.example.chore"
         }
       },
       "oauth_client": [
@@ -17,10 +17,39 @@
           "client_id": "769282762159-hlg1ka80qhgeqt5hpo2f1npjv00arvcp.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.salilvartak.huddleup",
+            "package_name": "com.example.chore",
             "certificate_hash": "4f64f3ef76bdb1da12dec203e77daff785f585df"
           }
         },
+        {
+          "client_id": "769282762159-idv4tvatujf77raetl8a0h87rhsghi86.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC46PsKz9HMfNeMHz6OlgnwNRjBaSORV3Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "769282762159-idv4tvatujf77raetl8a0h87rhsghi86.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:769282762159:android:1761a30623d0220ea83b5a",
+        "android_client_info": {
+          "package_name": "com.salilvartak.huddleup"
+        }
+      },
+      "oauth_client": [
         {
           "client_id": "769282762159-idv4tvatujf77raetl8a0h87rhsghi86.apps.googleusercontent.com",
           "client_type": 3
